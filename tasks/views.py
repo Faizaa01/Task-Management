@@ -1,19 +1,35 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from django.http import HttpResponse
+from tasks.forms import TaskForm, TaskModelForm
+from tasks.models import Employee,Task,TaskDetails,Project
+from datetime import date
+from django.db.models import Q, Count, Max, Min, Avg
 
-# Create your views here.
 
-def home(request):
-    # work with database,transform data, data pass, https reponse/json response
-    return HttpResponse("Welcome to Task Management System")
+def manager_dashboard(request):
+    return render(request, "dashboard/manager-dashboard.html")
 
-def contact(request):
-    return HttpResponse("<h1 style='color: pink'>This is contact page</h1>")
+def user_dashboard(request):
+    return render(request, "dashboard/user-dashboard.html")
 
-def show_task(request):
-    return HttpResponse("This is our task page")
+def test(request):
+    return render(request, "test.html")
 
-def show_specific_task(request, id):
-    print("id ", id)
-    print("id type", type(id))
-    return HttpResponse(f"This is specific task page {id}")
+def create_task(request):
+    form = TaskModelForm()
+    if request.method == "POST":
+        form = TaskModelForm(request.POST)
+
+        if form.is_valid():
+            """For Django Model Form"""
+            form.save()
+            return render(request, 'task_form.html', {"form":form, "message":"Task Added Successfully"})
+ 
+    context = {"form":form}
+    return render(request, "task_form.html", context)
+
+def view_task(request):
+    tasks = Task.objects.select_related('details').all()
+    # tasks = Task.objects.all()
+    
+    return render(request, "show_task.html",{"tasks":tasks})
