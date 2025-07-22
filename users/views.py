@@ -3,6 +3,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from users.forms import CustomRegistrationForm, RegisterForm
 from django.contrib.auth import login, authenticate, logout
+from django.contrib import messages
+from users.forms import LoginForm
+from django.contrib.auth.tokens import default_token_generator
 
 
 
@@ -11,22 +14,26 @@ def sign_up(request):
     if request.method == 'POST':
         form = CustomRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user=form.save(commit=False)
+            user.set_password(form.cleaned_data.get('password1'))
+            user.is_active = False
+            user.save()
+            messages.success(request, 'A Confirmation mail sent. Please check your email')
+            return redirect('sign_in')
         else:
             print("form is not valid")
     return render(request, 'Registration/register.html', {"form": form})
 
 
 def sign_in(request):
+    form = LoginForm()
     if request.method == 'POST':
-        username= request.POST.get('username')
-        password= request.POST.get('password')
-        user = authenticate(username=username, password=password)
-        if user is not None:
+        form = LoginForm(data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
             login(request, user)
             return redirect('home')
-
-    return render(request, 'Registration/login.html')
+    return render(request, 'Registration/login.html', {'form':form})
 
 
 
@@ -37,4 +44,15 @@ def sign_out(request):
         return redirect('sign_in')
     
 
-    
+def activate_user(request, user_id, token):
+    try:
+        user = User.objects.get(id=user_id)
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return redirect('sign_in')
+        else:
+            return HttpResponse('Invalid Id or token')
+
+    except User.DoesNotExist:
+        return HttpResponse('User not found')
