@@ -101,6 +101,5 @@ def delete_task(request, id):
 
 
 def view_task(request):
-    # tasks = Task.objects.select_related('details').all()
     projects = Project.objects.annotate(num_task=Count('task')).order_by('num_task')
-    return render(request, "show_task.html",{"projects":projects})
+    return render(request, "show_task.html", {"projects": projects})
