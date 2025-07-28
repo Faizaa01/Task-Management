@@ -9,10 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+
+
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com','https://127.0.0.1:8000']
 
 
@@ -71,8 +72,6 @@ WSGI_APPLICATION = 'task_management.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-
-
 # FOR SQLlite
 
 # DATABASES = {
@@ -83,6 +82,9 @@ WSGI_APPLICATION = 'task_management.wsgi.application'
 # }
 
 # FOR POSTGRES
+
+
+
 
 DATABASES = {
     'default': {
@@ -97,9 +99,6 @@ DATABASES = {
 
 
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -117,8 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
 
 LANGUAGE_CODE = 'en-us'
 
@@ -129,8 +127,10 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 STATIC_URL = 'static/'
 
@@ -138,8 +138,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+AUTH_USER_MODEL = 'users.CustomUser'
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -154,3 +155,8 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 
 FRONTEND_URL = 'http://127.0.0.1:8000'
+
+
+LOGIN_URL = '/users/sign_in/'
+LOGIN_REDIRECT_URL = '/tasks/dashboard/'
+LOGOUT_REDIRECT_URL = '/'

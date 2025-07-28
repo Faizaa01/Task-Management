@@ -67,6 +67,6 @@ class TaskModelForm(StyledFormMixin, forms.ModelForm):
 class TaskDetailModelForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = TaskDetails
-        fields = ['priority', 'notes']
+        fields = ['priority', 'notes', 'asset']
 
 

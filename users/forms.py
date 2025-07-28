@@ -1,21 +1,25 @@
-from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User, Group, Permission
 import re
+from django import forms
+from users.models import CustomUser
 from tasks.forms import StyledFormMixin
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm
+
+User = get_user_model()
 
 
-class RegisterForm(UserCreationForm):
-    class Meta:
-        model = User
-        fields = ['username', 'password1', 'password2', 'email']
+# class RegisterForm(UserCreationForm):
+#     class Meta:
+#         model = User
+#         fields = ['username', 'password1', 'password2', 'email']
 
-    def __init__(self, *args, **kwargs):
-        super(UserCreationForm, self).__init__(*args, **kwargs)
+#     def __init__(self, *args, **kwargs):
+#         super(UserCreationForm, self).__init__(*args, **kwargs)
 
-        for fieldname in ['username', 'password1', 'password2']:
-            self.fields[fieldname].help_text = None
+#         for fieldname in ['username', 'password1', 'password2']:
+#             self.fields[fieldname].help_text = None
 
 
 class CustomRegistrationForm(StyledFormMixin, forms.ModelForm):
@@ -63,14 +67,6 @@ class CustomRegistrationForm(StyledFormMixin, forms.ModelForm):
 
         return cleaned_data
 
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        email_exists = User.objects.filter(email=email).exists()
-
-        if email_exists:
-            raise forms.ValidationError("Email already exists")
-
-        return email
 
 
 class LoginForm(StyledFormMixin, AuthenticationForm):
@@ -97,3 +93,21 @@ class CreateGroupForm(StyledFormMixin, forms.ModelForm):
         model = Group
         fields = ['name', 'permissions']
 
+
+
+class CustomPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
+    pass
+
+
+class CustomPasswordResetForm(StyledFormMixin, PasswordResetForm):
+    pass
+
+
+class CustomPasswordResetConfirmForm(StyledFormMixin, SetPasswordForm):
+    pass
+
+
+class EditProfileForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'first_name', 'last_name', 'bio', 'profile_image']
