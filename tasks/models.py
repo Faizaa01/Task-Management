@@ -11,8 +11,7 @@ class Task(models.Model):
     ]
     project = models.ForeignKey(
         "Project", 
-        on_delete=models.CASCADE, 
-        default=1
+        on_delete=models.CASCADE,
     )
     assigned_to = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='tasks')
     title = models.CharField(max_length=250)

@@ -1,14 +1,15 @@
+from django.views import View
 from users.forms import LoginForm
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.db.models import Prefetch
-from django.contrib.auth import login, logout
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.views.generic import TemplateView, UpdateView
+from django.contrib.auth import get_user_model
+from django.utils.decorators import method_decorator
 from django.shortcuts import render, redirect, HttpResponse
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.generic import TemplateView, UpdateView, ListView
+from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView, PasswordResetConfirmView
 from users.forms import CustomRegistrationForm, AssignRoleForm, CreateGroupForm, CustomPasswordChangeForm, CustomPasswordResetForm, CustomPasswordResetConfirmForm, EditProfileForm
 
@@ -17,21 +18,6 @@ User = get_user_model()
 
 def is_admin(user):
     return user.groups.filter(name='Admin').exists()
-
-
-class EditProfileView(UpdateView):
-    model = User
-    form_class = EditProfileForm
-    template_name = 'accounts/update_profile.html'
-    context_object_name = 'form'
-
-    def get_object(self):
-        return self.request.user
-
-    def form_valid(self, form):
-        form.save()
-        return redirect('profile')
-
 
 
 def sign_up(request):
@@ -49,25 +35,6 @@ def sign_up(request):
             print("form is not valid")
     return render(request, 'Registration/register.html', {"form": form})
 
-
-def sign_in(request):
-    form = LoginForm()
-    if request.method == 'POST':
-        form = LoginForm(data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect('home')
-    return render(request, 'Registration/login.html', {'form':form})
-
-
-
-@login_required
-def sign_out(request):
-    if request.method == 'POST':
-        logout(request)
-        return redirect('sign_in')
-    
 
 def activate_user(request, user_id, token):
     try:
@@ -97,13 +64,18 @@ def admin_dashboard(request):
     return render(request, 'admin/dashboard.html', {"users": users})
 
 
+group_decorators = [login_required,user_passes_test(is_admin, login_url='no-permission')]
+@method_decorator(group_decorators, name='dispatch')
+class AssignRole(View):
+    template_name = 'admin/assign_role.html'
 
-@user_passes_test(is_admin, login_url='no-permission')
-def assign_role(request, user_id):
-    user = User.objects.get(id=user_id)
-    form = AssignRoleForm()
+    def get(self, request, user_id):
+        user = User.objects.get(id=user_id)
+        form = AssignRoleForm()
+        return render(request, self.template_name, {"form": form})
 
-    if request.method == 'POST':
+    def post(self, request, user_id):
+        user = User.objects.get(id=user_id)
         form = AssignRoleForm(request.POST)
         if form.is_valid():
             role = form.cleaned_data.get('role')
@@ -111,32 +83,49 @@ def assign_role(request, user_id):
             user.groups.add(role)
             messages.success(request, f"User {user.username} has been assigned to the {role.name} role")
             return redirect('admin-dashboard')
+        return render(request, self.template_name, {"form": form})
+    
 
-    return render(request, 'admin/assign_role.html', {"form": form})
+@method_decorator(group_decorators, name='dispatch')
+class CreateGroup(View):
+    template_name = 'admin/create_group.html'
+    form_class = CreateGroupForm
 
+    def get(self, request, *args, **kwargs):
+        form = self.form_class()
+        return render(request, self.template_name, {'form': form})
 
-
-@user_passes_test(is_admin, login_url='no-permission')
-def create_group(request):
-    form = CreateGroupForm()
-    if request.method == 'POST':
-        form = CreateGroupForm(request.POST)
-
+    def post(self, request, *args, **kwargs):
+        form = self.form_class(request.POST)
         if form.is_valid():
             group = form.save()
             messages.success(request, f"Group {group.name} has been created successfully")
             return redirect('create-group')
-
-    return render(request, 'admin/create_group.html', {'form': form})
-
+        return render(request, self.template_name, {'form': form})
 
 
-@user_passes_test(is_admin, login_url='no-permission')
-def group_list(request):
-    groups = Group.objects.prefetch_related('permissions').all()
-    return render(request, 'admin/group_list.html', {'groups': groups})
+@method_decorator(group_decorators, name='dispatch')
+class GroupList(ListView):
+    model = Group
+    template_name = 'admin/group_list.html'
+    context_object_name = 'groups'
+
+    def get_queryset(self):
+        return Group.objects.prefetch_related('permissions').all()
 
 
+class EditProfileView(UpdateView):
+    model = User
+    form_class = EditProfileForm
+    template_name = 'accounts/update_profile.html'
+    context_object_name = 'form'
+
+    def get_object(self):
+        return self.request.user
+
+    def form_valid(self, form):
+        form.save()
+        return redirect('profile')
 
 
 class ProfileView(TemplateView):
@@ -157,7 +146,6 @@ class ProfileView(TemplateView):
         return context
 
 
-
 class CustomLoginView(LoginView):
     form_class = LoginForm
 
@@ -169,8 +157,6 @@ class CustomLoginView(LoginView):
 class ChangePassword(PasswordChangeView):
     template_name = 'accounts/password_change.html'
     form_class = CustomPasswordChangeForm
-
-
 
 
 class CustomPasswordResetView(PasswordResetView):
